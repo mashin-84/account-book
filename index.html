@@ -86,55 +86,46 @@
   const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   if (data.length === 0) return alert('目前沒有可同步的資料');
 
-  if (!confirm(`確定要同步 ${data.length} 筆資料嗎？`)) return;
+  if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
+
+  const baseUrl = 'https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec';
 
   let successCount = 0;
   let failCount = 0;
 
-  const baseUrl = 'https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec';
+  (async () => {
+    for (const item of data) {
+      const params = new URLSearchParams({
+        type: item.type,
+        date: item.date,
+        account: item.account,
+        amount: item.amount,
+        note: item.note || '',
+        catIn: item.type === '收入' ? item.category : '',
+        catOut: item.type === '支出' ? item.category : ''
+      });
 
-  function sendOne(index) {
-    if (index >= data.length) {
-      alert(`✅ 同步完成：成功 ${successCount} 筆，失敗 ${failCount} 筆`);
-      if (successCount > 0) {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-      return;
-    }
-
-    const record = data[index];
-    const params = new URLSearchParams({
-      type: record.type,
-      date: record.date,
-      account: record.account,
-      amount: record.amount,
-      note: record.note
-    });
-
-    if (record.type === '收入') {
-      params.append('catIn', record.category);
-    } else {
-      params.append('catOut', record.category);
-    }
-
-    fetch(`${baseUrl}?${params.toString()}`)
-      .then(res => res.text())
-      .then(txt => {
-        if (txt === 'OK') {
+      try {
+        const res = await fetch(`${baseUrl}?${params.toString()}`);
+        const text = await res.text();
+        if (text.includes('OK')) {
           successCount++;
         } else {
           failCount++;
         }
-        sendOne(index + 1);
-      })
-      .catch(err => {
+      } catch (err) {
         failCount++;
-        sendOne(index + 1);
-      });
-  }
+      }
+    }
 
-  sendOne(0);
+    if (failCount === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+  })();
 }
+
 
     // PWA service worker 註冊
     if ('serviceWorker' in navigator) {
