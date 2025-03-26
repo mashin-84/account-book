@@ -83,27 +83,58 @@
     });
 
     function syncData() {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      if (data.length === 0) return alert('目前沒有可同步的資料');
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (data.length === 0) return alert('目前沒有可同步的資料');
 
-      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n這會覆蓋主系統的資料`)) return;
+  if (!confirm(`確定要同步 ${data.length} 筆資料嗎？`)) return;
 
-      fetch('https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      })
+  let successCount = 0;
+  let failCount = 0;
+
+  const baseUrl = 'https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec';
+
+  function sendOne(index) {
+    if (index >= data.length) {
+      alert(`✅ 同步完成：成功 ${successCount} 筆，失敗 ${failCount} 筆`);
+      if (successCount > 0) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      return;
+    }
+
+    const record = data[index];
+    const params = new URLSearchParams({
+      type: record.type,
+      date: record.date,
+      account: record.account,
+      amount: record.amount,
+      note: record.note
+    });
+
+    if (record.type === '收入') {
+      params.append('catIn', record.category);
+    } else {
+      params.append('catOut', record.category);
+    }
+
+    fetch(`${baseUrl}?${params.toString()}`)
       .then(res => res.text())
       .then(txt => {
-        if (txt.includes('同步完成')) {
-          localStorage.removeItem(STORAGE_KEY);
-          alert('✅ 同步成功');
+        if (txt === 'OK') {
+          successCount++;
         } else {
-          alert('⚠️ 同步失敗：' + txt);
+          failCount++;
         }
+        sendOne(index + 1);
       })
-      .catch(err => alert('❌ 發生錯誤：' + err.message));
-    }
+      .catch(err => {
+        failCount++;
+        sendOne(index + 1);
+      });
+  }
+
+  sendOne(0);
+}
 
     // PWA service worker 註冊
     if ('serviceWorker' in navigator) {
