@@ -1,33 +1,25 @@
 const CACHE_NAME = 'fastbook-cache-v1';
-const FILES_TO_CACHE = [
+const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
+  './service-worker.js',
   './icon-192.png',
   './icon-512.png'
 ];
 
-// 安裝階段：快取所有必要檔案
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
-// 啟動階段：清除舊的快取
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => {
-        if (k !== CACHE_NAME) return caches.delete(k);
-      }))
-    )
-  );
-});
-
-// 攔截 fetch：回傳快取或網路結果
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(response => response || fetch(e.request))
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    caches.match(event.request).then(function(response) {
+      return response || fetch(event.request);
+    })
   );
 });

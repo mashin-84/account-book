@@ -1,10 +1,11 @@
 {
   "name": "極速記帳",
   "short_name": "記帳",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f2f2f2",
   "theme_color": "#666666",
+  "description": "極速離線記帳工具，支援本機儲存與手動同步",
   "icons": [
     {
       "src": "icon-192.png",
