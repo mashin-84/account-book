@@ -81,6 +81,13 @@
       width: 100%;
       box-sizing: border-box;
     }
+    .balances {
+      margin-top: 40px;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -93,7 +100,9 @@
       </select>
     </label>
     <label>日期<input type="date" id="date" required></label>
-    <label>帳戶<input type="text" id="account" required></label>
+    <label>帳戶
+      <select id="account" required></select>
+    </label>
     <label>類別
       <select id="category" required></select>
     </label>
@@ -104,17 +113,18 @@
   <button class="toggle-btn" onclick="syncData()">📤 手動同步到主系統</button>
   <div class="message" id="msg"></div>
 
+  <div class="balances" id="balanceDisplay">
+    💰 帳戶餘額將顯示在這裡（同步完成後）
+  </div>
+
   <script>
     const STORAGE_KEY = 'fastbook-records';
     document.getElementById('date').valueAsDate = new Date();
 
-    // ✨ 寫死類別資料（未來可直接修改這裡）
     const incomeCategories = ['薪水', '兼職費', '加班費', '兼課費', '其他'];
     const expenseCategories = ['飲食', '住家', '交通', '娛樂', '保健', '寵物', '工作代墊', '投資', '日用品'];
     const accountList = ['郵局', '郵局優存', '永豐金', '玉山金融卡(含國旅卡+富邦)', '現金'];
 
-
-    // 類型改變時，更新類別下拉選單
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
     function updateCategoryOptions() {
@@ -130,8 +140,19 @@
       });
     }
 
-    // 初次載入預設類別清單
+    function updateAccountOptions() {
+      const select = document.getElementById('account');
+      select.innerHTML = '';
+      accountList.forEach(acc => {
+        const option = document.createElement('option');
+        option.value = acc;
+        option.textContent = acc;
+        select.appendChild(option);
+      });
+    }
+
     updateCategoryOptions();
+    updateAccountOptions();
 
     document.getElementById('form').addEventListener('submit', e => {
       e.preventDefault();
@@ -150,6 +171,7 @@
       document.getElementById('form').reset();
       document.getElementById('date').valueAsDate = new Date();
       updateCategoryOptions();
+      updateAccountOptions();
     });
 
     function syncData() {
@@ -200,6 +222,7 @@
         }
 
         alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+        document.getElementById('balanceDisplay').textContent = '💰 同步完成，餘額顯示功能可後續接 API 完善';
       })();
     }
 
