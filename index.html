@@ -29,6 +29,11 @@
       font-size: 42px;
       margin-bottom: 30px;
     }
+h3 {
+    font-size: 36px;
+    margin-top: 40px;
+    color: var(--text);
+  }
     label {
       display: block;
       margin-top: 30px;
@@ -117,22 +122,21 @@
   <div class="balances" id="balanceDisplay">
     💰 帳戶餘額將顯示在這裡(點擊查詢後)
   </div>
+<label>📅 選擇查詢月份
+  <input type="month" id="queryMonth" style="margin-top: 10px;" />
+</label>
 <button class="toggle-btn" onclick="showLocalRecords()">📂 查看本機資料</button>
 <button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
-<label>☁️ 選擇查詢月份
-  <input type="month" id="cloudMonth" style="margin-top: 10px;" />
-</label>
-<button class="toggle-btn" onclick="showCloudRecords()">📤 查詢該月份雲端資料</button>
 <div class="balances" id="recordDisplay">
-  📅 本地或雲端記錄將顯示在這裡
+  📅 資料將顯示在這裡
 </div>
 
   <script>
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date();
   const ym = today.toISOString().slice(0, 7); // "2025-03"
-  const cloudMonth = document.getElementById('cloudMonth');
-  if (cloudMonth) cloudMonth.value = ym;
+  const queryMonth = document.getElementById('queryMonth');
+  if (queryMonth) queryMonth.value = ym;
 });
 
     const STORAGE_KEY = 'fastbook-records';
@@ -253,7 +257,7 @@ function loadBalances() {
 }
 function showCloudRecords() {
   const display = document.getElementById('recordDisplay');
-  const input = document.getElementById('cloudMonth');
+  const input = document.getElementById('queryMonth');
   const month = input.value;
 
   if (!month) {
@@ -278,7 +282,7 @@ function showCloudRecords() {
         return;
       }
 
-      let html = `<h3>${month}</h3><ul style="padding-left:20px;">`;
+      let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
       records.forEach(r => {
         html += `<li style="margin-bottom:10px;">☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
       });
@@ -291,31 +295,32 @@ function showCloudRecords() {
 }
 
 function showLocalRecords() {
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const display = document.getElementById('recordDisplay');
+  const input = document.getElementById('queryMonth');
+  const month = input.value;
 
+  if (!month) {
+    display.innerHTML = '⚠️ 請先選擇查詢的月份';
+    return;
+  }
+
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   if (data.length === 0) {
     display.innerHTML = '📂 本機沒有任何資料';
     return;
   }
 
-  // 依照年月分類
-  const grouped = {};
-  data.forEach(item => {
-    const ym = item.date.slice(0, 7);
-    if (!grouped[ym]) grouped[ym] = [];
-    grouped[ym].push(item);
-  });
-
-  let html = '';
-  for (const month in grouped) {
-    html += `<h3>${month}</h3><ul style="padding-left:20px;">`;
-    grouped[month].forEach(r => {
-      html += `<li style="margin-bottom:10px;">📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-    });
-    html += `</ul>`;
+  const filtered = data.filter(r => r.date?.startsWith(month));
+  if (filtered.length === 0) {
+    display.innerHTML = `📭 本機在 ${month} 無資料`;
+    return;
   }
 
+  let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
+  filtered.forEach(r => {
+    html += `<li style="margin-bottom:10px;">📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+  });
+  html += `</ul>`;
   display.innerHTML = html;
 }
 
