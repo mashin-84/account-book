@@ -222,7 +222,19 @@
         }
 
         alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
-        document.getElementById('balanceDisplay').textContent = '💰 同步完成，餘額顯示功能可後續接 API 完善';
+
+        // ✅ 同步後抓餘額顯示
+        fetch(baseUrl + 'balance')
+          .then(res => res.json())
+          .then(accounts => {
+            const display = accounts.map(acc =>
+              `<div>${acc.name}：$${Number(acc.balance).toLocaleString()}</div>`
+            ).join('');
+            document.getElementById('balanceDisplay').innerHTML = '💰 各帳戶餘額：<br>' + display;
+          })
+          .catch(() => {
+            document.getElementById('balanceDisplay').textContent = '⚠️ 無法取得帳戶餘額';
+          });
       })();
     }
 
