@@ -1,14 +1,33 @@
-// 安裝階段
-self.addEventListener('install', function (event) {
-  console.log('✅ Service Worker 已安裝');
+const CACHE_NAME = 'fastbook-cache-v1';
+const FILES_TO_CACHE = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
+];
+
+// 安裝階段：快取所有必要檔案
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
+  );
 });
 
-// 啟用階段
-self.addEventListener('activate', function (event) {
-  console.log('✅ Service Worker 已啟用');
+// 啟動階段：清除舊的快取
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => {
+        if (k !== CACHE_NAME) return caches.delete(k);
+      }))
+    )
+  );
 });
 
-// fetch 階段（目前不快取，只是讓 PWA 可運行）
-self.addEventListener('fetch', function (event) {
-  // 這裡可加入快取邏輯（進階功能），目前先 pass
+// 攔截 fetch：回傳快取或網路結果
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(response => response || fetch(e.request))
+  );
 });
