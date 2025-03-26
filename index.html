@@ -82,20 +82,20 @@
       document.getElementById('date').valueAsDate = new Date();
     });
 
-    function syncData() {
+function syncData() {
   const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   if (data.length === 0) return alert('目前沒有可同步的資料');
 
   if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
 
-  const baseUrl = 'https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec';
+  const baseUrl = 'https://mashin.t0884.workers.dev/'; // ← 改成 Worker URL
 
   let successCount = 0;
   let failCount = 0;
 
   (async () => {
     for (const item of data) {
-      const params = new URLSearchParams({
+      const payload = {
         type: item.type,
         date: item.date,
         account: item.account,
@@ -103,10 +103,17 @@
         note: item.note || '',
         catIn: item.type === '收入' ? item.category : '',
         catOut: item.type === '支出' ? item.category : ''
-      });
+      };
 
       try {
-        const res = await fetch(`${baseUrl}?${params.toString()}`);
+        const res = await fetch(baseUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
         const text = await res.text();
         if (text.includes('OK')) {
           successCount++;
@@ -125,7 +132,6 @@
     alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
   })();
 }
-
 
     // PWA service worker 註冊
     if ('serviceWorker' in navigator) {
