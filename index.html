@@ -94,7 +94,9 @@
     </label>
     <label>日期<input type="date" id="date" required></label>
     <label>帳戶<input type="text" id="account" required></label>
-    <label>類別<input type="text" id="category" required></label>
+    <label>類別
+      <select id="category" required></select>
+    </label>
     <label>金額<input type="number" id="amount" required></label>
     <label>內容<input type="text" id="note"></label>
     <button type="submit">💾 儲存到本機</button>
@@ -105,6 +107,29 @@
   <script>
     const STORAGE_KEY = 'fastbook-records';
     document.getElementById('date').valueAsDate = new Date();
+
+    // ✨ 寫死類別資料（未來可直接修改這裡）
+    const incomeCategories = ['薪水', '兼職費', '加班費', '兼課費', '其他'];
+    const expenseCategories = ['飲食', '住家', '交通', '娛樂', '保健', '寵物', '工作代墊', '投資', '日用品'];
+
+    // 類型改變時，更新類別下拉選單
+    document.getElementById('type').addEventListener('change', updateCategoryOptions);
+
+    function updateCategoryOptions() {
+      const type = document.getElementById('type').value;
+      const select = document.getElementById('category');
+      select.innerHTML = '';
+      const list = type === '收入' ? incomeCategories : expenseCategories;
+      list.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+
+    // 初次載入預設類別清單
+    updateCategoryOptions();
 
     document.getElementById('form').addEventListener('submit', e => {
       e.preventDefault();
@@ -122,6 +147,7 @@
       document.getElementById('msg').textContent = '✅ 已儲存到本地端';
       document.getElementById('form').reset();
       document.getElementById('date').valueAsDate = new Date();
+      updateCategoryOptions();
     });
 
     function syncData() {
