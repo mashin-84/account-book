@@ -78,26 +78,30 @@
 
   <h3>🔧 編輯帳戶與類別</h3>
 
-  <!-- 帳戶管理 -->
-  <label>帳戶名稱
-    <input type="text" id="newAccount" />
-  </label>
+<!-- 帳戶管理 -->
+<button class="toggle-btn" onclick="toggleSection('accountSection')">📂 帳戶管理</button>
+<div id="accountSection" style="display: none;">
+  <label>帳戶名稱 <input type="text" id="newAccount" /></label>
   <button onclick="addAccount()">➕ 新增帳戶</button>
   <ul id="accountListDisplay"></ul>
+</div>
 
-  <!-- 收入類別管理 -->
-  <label>收入類別
-    <input type="text" id="newIncomeCat" />
-  </label>
+<!-- 收入類別管理 -->
+<button class="toggle-btn" onclick="toggleSection('incomeSection')">📂 收入類別管理</button>
+<div id="incomeSection" style="display: none;">
+  <label>收入類別 <input type="text" id="newIncomeCat" /></label>
   <button onclick="addIncomeCategory()">➕ 新增收入類別</button>
   <ul id="incomeCatListDisplay"></ul>
+</div>
 
-  <!-- 支出類別管理 -->
-  <label>支出類別
-    <input type="text" id="newExpenseCat" />
-  </label>
+<!-- 支出類別管理 -->
+<button class="toggle-btn" onclick="toggleSection('expenseSection')">📂 支出類別管理</button>
+<div id="expenseSection" style="display: none;">
+  <label>支出類別 <input type="text" id="newExpenseCat" /></label>
   <button onclick="addExpenseCategory()">➕ 新增支出類別</button>
   <ul id="expenseCatListDisplay"></ul>
+</div>
+
 
   <!-- 查詢功能 -->
   <button class="toggle-btn" onclick="loadBalances()">💰 查詢帳戶餘額</button>
@@ -118,6 +122,16 @@
       document.getElementById('queryMonth').value = ym;
       loadFormOptions();
     });
+
+function toggleSection(id) {
+  const section = document.getElementById(id);
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+  } else {
+    section.style.display = 'none';
+  }
+}
+
 
     function loadFormOptions() {
       fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
