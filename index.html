@@ -81,14 +81,6 @@
       width: 100%;
       box-sizing: border-box;
     }
-    .balances {
-      margin-top: 60px;
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      font-size: 30px;
-    }
   </style>
 </head>
 <body>
@@ -112,48 +104,33 @@
     <button type="submit">儲存到本機</button>
   </form>
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
-  <button class="toggle-btn" onclick="loadBalances()">查詢帳戶餘額</button>
+  <button class="toggle-btn" onclick="location.href='options.html'">⚙️ 開啟選項設定</button>
   <div class="message" id="msg"></div>
-  <div class="balances" id="balanceDisplay">
-    💰 帳戶餘額將顯示在這裡(點擊查詢後)
-  </div>
-<label>📅 選擇查詢月份
-  <input type="month" id="queryMonth" style="margin-top: 10px;" />
-</label>
-<button class="toggle-btn" onclick="showLocalRecords()">📂 查看本機資料</button>
-<button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
-<div class="balances" id="recordDisplay">
-  📅 資料將顯示在這裡
-</div>
 
   <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const today = new Date();
-  const ym = today.toISOString().slice(0, 7); // "2025-03"
-  const queryMonth = document.getElementById('queryMonth');
-  if (queryMonth) queryMonth.value = ym;
-});
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('date').valueAsDate = new Date();
+    });
 
-let incomeCategories = [];
-let expenseCategories = [];
-let accountList = [];
+    let incomeCategories = [];
+    let expenseCategories = [];
+    let accountList = [];
 
-fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
-  .then(res => res.json())
-  .then(options => {
-    incomeCategories = options.incomeCategories;
-    expenseCategories = options.expenseCategories;
-    accountList = options.accounts;
+    fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
+      .then(res => res.json())
+      .then(options => {
+        incomeCategories = options.incomeCategories;
+        expenseCategories = options.expenseCategories;
+        accountList = options.accounts;
 
-    updateCategoryOptions();
-    updateAccountOptions();
-  })
-  .catch(() => {
-    document.getElementById('msg').textContent = '⚠️ 無法載入選項';
-  });
+        updateCategoryOptions();
+        updateAccountOptions();
+      })
+      .catch(() => {
+        document.getElementById('msg').textContent = '⚠️ 無法載入選項';
+      });
 
     const STORAGE_KEY = 'fastbook-records';
-    document.getElementById('date').valueAsDate = new Date();
 
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
@@ -181,8 +158,6 @@ fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
       });
     }
 
-
-
     document.getElementById('form').addEventListener('submit', e => {
       e.preventDefault();
       const data = {
@@ -204,134 +179,48 @@ fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
     });
 
     function syncData() {
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  if (data.length === 0) return alert('目前沒有可同步的資料');
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      if (data.length === 0) return alert('目前沒有可同步的資料');
 
-  if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
+      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
 
-  const baseUrl = 'https://mashin.t0884.workers.dev/';
-  let successCount = 0;
-  let failCount = 0;
+      const baseUrl = 'https://mashin.t0884.workers.dev/';
+      let successCount = 0;
+      let failCount = 0;
 
-  (async () => {
-    for (const item of data) {
-      const payload = {
-        type: item.type,
-        date: item.date,
-        account: item.account,
-        amount: item.amount,
-        note: item.note || '',
-        catIn: item.type === '收入' ? item.category : '',
-        catOut: item.type === '支出' ? item.category : ''
-      };
+      (async () => {
+        for (const item of data) {
+          const payload = {
+            type: item.type,
+            date: item.date,
+            account: item.account,
+            amount: item.amount,
+            note: item.note || '',
+            catIn: item.type === '收入' ? item.category : '',
+            catOut: item.type === '支出' ? item.category : ''
+          };
 
-      try {
-        const res = await fetch(baseUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const text = await res.text();
-        if (text.includes('OK')) successCount++;
-        else failCount++;
-      } catch (err) {
-        failCount++;
-      }
+          try {
+            const res = await fetch(baseUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const text = await res.text();
+            if (text.includes('OK')) successCount++;
+            else failCount++;
+          } catch (err) {
+            failCount++;
+          }
+        }
+
+        if (failCount === 0) {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+
+        alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+      })();
     }
-
-    if (failCount === 0) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-
-    alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
-  })();
-}
-
-// ✅ 把這段搬出來放在 script 末尾或 syncData 之外
-function loadBalances() {
-  document.getElementById('balanceDisplay').textContent = '⏳ 查詢中...';
-
-  fetch('https://mashin.t0884.workers.dev/balance')
-    .then(res => res.json())
-    .then(accounts => {
-      const html = accounts.map(acc =>
-        `<div>${acc.name}：$${Number(acc.balance).toLocaleString()}</div>`
-      ).join('');
-      document.getElementById('balanceDisplay').innerHTML = '💰 各帳戶餘額：<br>' + html;
-    })
-    .catch(() => {
-      document.getElementById('balanceDisplay').textContent = '⚠️ 無法取得帳戶餘額';
-    });
-}
-function showCloudRecords() {
-  const display = document.getElementById('recordDisplay');
-  const input = document.getElementById('queryMonth');
-  const month = input.value;
-
-  if (!month) {
-    display.innerHTML = '⚠️ 請先選擇查詢的月份';
-    return;
-  }
-
-  display.innerHTML = '☁️ 雲端資料讀取中...';
-
-  fetch('https://mashin.t0884.workers.dev/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'getMonthlyRecords',
-      month: month
-    })
-  })
-    .then(res => res.json())
-    .then(records => {
-      if (!records || records.length === 0) {
-        display.innerHTML = `📭 ${month} 雲端資料為空`;
-        return;
-      }
-
-      let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
-      records.forEach(r => {
-        html += `<li style="margin-bottom:10px;">☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-      });
-      html += `</ul>`;
-      display.innerHTML = html;
-    })
-    .catch(() => {
-      display.innerHTML = '⚠️ 無法取得雲端資料';
-    });
-}
-
-function showLocalRecords() {
-  const display = document.getElementById('recordDisplay');
-  const input = document.getElementById('queryMonth');
-  const month = input.value;
-
-  if (!month) {
-    display.innerHTML = '⚠️ 請先選擇查詢的月份';
-    return;
-  }
-
-  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  if (data.length === 0) {
-    display.innerHTML = '📂 本機沒有任何資料';
-    return;
-  }
-
-  const filtered = data.filter(r => r.date?.startsWith(month));
-  if (filtered.length === 0) {
-    display.innerHTML = `📭 本機在 ${month} 無資料`;
-    return;
-  }
-
-  let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
-  filtered.forEach(r => {
-    html += `<li style="margin-bottom:10px;">📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-  });
-  html += `</ul>`;
-  display.innerHTML = html;
-}
-
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
@@ -339,3 +228,4 @@ function showLocalRecords() {
   </script>
 </body>
 </html>
+

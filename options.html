@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#666666" />
+  <title>選項設定</title>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      padding: 40px;
+      font-size: 28px;
+      background: #fff;
+      color: #222;
+    }
+    h2 {
+      font-size: 38px;
+      margin-bottom: 30px;
+    }
+    h3 {
+      font-size: 32px;
+      margin-top: 40px;
+    }
+    label {
+      display: block;
+      margin-top: 24px;
+    }
+    input, button, select {
+      width: 100%;
+      font-size: 26px;
+      padding: 18px;
+      margin-top: 8px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #666;
+      color: #fff;
+      border: none;
+      margin-top: 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    ul {
+      margin-top: 10px;
+      padding-left: 25px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .toggle-btn {
+      background: #f0f0f0;
+      color: #666;
+      font-weight: bold;
+      font-size: 26px;
+      margin-top: 30px;
+      padding: 18px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .balances {
+      margin-top: 30px;
+      background: #f8f8f8;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h2>⚙️ 選項設定</h2>
+
+  <h3>🔧 編輯帳戶與類別</h3>
+
+  <!-- 帳戶管理 -->
+  <label>帳戶名稱
+    <input type="text" id="newAccount" />
+  </label>
+  <button onclick="addAccount()">➕ 新增帳戶</button>
+  <ul id="accountListDisplay"></ul>
+
+  <!-- 收入類別管理 -->
+  <label>收入類別
+    <input type="text" id="newIncomeCat" />
+  </label>
+  <button onclick="addIncomeCategory()">➕ 新增收入類別</button>
+  <ul id="incomeCatListDisplay"></ul>
+
+  <!-- 支出類別管理 -->
+  <label>支出類別
+    <input type="text" id="newExpenseCat" />
+  </label>
+  <button onclick="addExpenseCategory()">➕ 新增支出類別</button>
+  <ul id="expenseCatListDisplay"></ul>
+
+  <!-- 查詢功能 -->
+  <button class="toggle-btn" onclick="loadBalances()">💰 查詢帳戶餘額</button>
+  <div class="balances" id="balanceDisplay">💰 帳戶餘額將顯示在這裡</div>
+
+  <label>📅 選擇查詢月份
+    <input type="month" id="queryMonth" style="margin-top: 10px;" />
+  </label>
+  <button class="toggle-btn" onclick="showLocalRecords()">📂 查看本機資料</button>
+  <button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
+  <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
+
+  <script>
+    const STORAGE_KEY = 'fastbook-records';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const ym = new Date().toISOString().slice(0, 7);
+      document.getElementById('queryMonth').value = ym;
+      loadFormOptions();
+    });
+
+    function loadFormOptions() {
+      fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
+        .then(res => res.json())
+        .then(options => {
+          showList('accountListDisplay', options.accounts, deleteAccount);
+          showList('incomeCatListDisplay', options.incomeCategories, name => deleteCategory('收入', name));
+          showList('expenseCatListDisplay', options.expenseCategories, name => deleteCategory('支出', name));
+        });
+    }
+
+    function showList(containerId, items, deleteFn) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item + ' ';
+        const btn = document.createElement('button');
+        btn.textContent = '❌';
+        btn.onclick = () => {
+          if (confirm(`確定要刪除「${item}」嗎？`)) deleteFn(item);
+        };
+        li.appendChild(btn);
+        container.appendChild(li);
+      });
+    }
+
+    function addAccount() {
+      const name = document.getElementById('newAccount').value.trim();
+      if (!name) return alert('請輸入帳戶名稱');
+      fetch(GAS_URL + '?action=addAccount&name=' + encodeURIComponent(name))
+        .then(res => res.text())
+        .then(alert)
+        .then(loadFormOptions);
+    }
+
+    function addIncomeCategory() {
+      const name = document.getElementById('newIncomeCat').value.trim();
+      if (!name) return alert('請輸入收入類別名稱');
+      fetch(GAS_URL + '?action=addCategory&type=收入&name=' + encodeURIComponent(name))
+        .then(res => res.text())
+        .then(alert)
+        .then(loadFormOptions);
+    }
+
+    function addExpenseCategory() {
+      const name = document.getElementById('newExpenseCat').value.trim();
+      if (!name) return alert('請輸入支出類別名稱');
+      fetch(GAS_URL + '?action=addCategory&type=支出&name=' + encodeURIComponent(name))
+        .then(res => res.text())
+        .then(alert)
+        .then(loadFormOptions);
+    }
+
+    function deleteAccount(name) {
+      fetch(GAS_URL + '?action=deleteAccount&name=' + encodeURIComponent(name))
+        .then(res => res.text())
+        .then(alert)
+        .then(loadFormOptions);
+    }
+
+    function deleteCategory(type, name) {
+      fetch(GAS_URL + '?action=deleteCategory&type=' + encodeURIComponent(type) + '&name=' + encodeURIComponent(name))
+        .then(res => res.text())
+        .then(alert)
+        .then(loadFormOptions);
+    }
+
+    function loadBalances() {
+      document.getElementById('balanceDisplay').textContent = '⏳ 查詢中...';
+      fetch('https://mashin.t0884.workers.dev/balance')
+        .then(res => res.json())
+        .then(data => {
+          const html = data.map(acc => `<div>${acc.name}：$${Number(acc.balance).toLocaleString()}</div>`).join('');
+          document.getElementById('balanceDisplay').innerHTML = '💰 各帳戶餘額：<br>' + html;
+        })
+        .catch(() => {
+          document.getElementById('balanceDisplay').textContent = '⚠️ 無法取得帳戶餘額';
+        });
+    }
+
+    function showLocalRecords() {
+      const display = document.getElementById('recordDisplay');
+      const month = document.getElementById('queryMonth').value;
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const filtered = data.filter(r => r.date?.startsWith(month));
+      if (!month) return display.textContent = '⚠️ 請先選擇查詢的月份';
+      if (data.length === 0) return display.textContent = '📂 本機沒有任何資料';
+      if (filtered.length === 0) return display.textContent = `📭 本機在 ${month} 無資料`;
+
+      let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
+      filtered.forEach(r => {
+        html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+      });
+      html += '</ul>';
+      display.innerHTML = html;
+    }
+
+    function showCloudRecords() {
+      const display = document.getElementById('recordDisplay');
+      const month = document.getElementById('queryMonth').value;
+      if (!month) return display.textContent = '⚠️ 請先選擇查詢的月份';
+
+      display.innerHTML = '☁️ 雲端資料讀取中...';
+      fetch('https://mashin.t0884.workers.dev/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getMonthlyRecords', month })
+      })
+        .then(res => res.json())
+        .then(records => {
+          if (!records || records.length === 0) {
+            display.innerHTML = `📭 ${month} 雲端資料為空`;
+            return;
+          }
+          let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
+          records.forEach(r => {
+            html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+          });
+          html += '</ul>';
+          display.innerHTML = html;
+        })
+        .catch(() => {
+          display.innerHTML = '⚠️ 無法取得雲端資料';
+        });
+    }
+
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxjcV8ri8A8lpBPgmAlwfhWRwS12VhNCQMGXDHkjqE-GA7XcHy13TCynRxVuHeTvj8b/exec';
+  </script>
+</body>
+</html>
