@@ -115,6 +115,7 @@
   <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
 
   <script>
+    const GAS_URL = 'https://mashin.t0884.workers.dev';
     const STORAGE_KEY = 'fastbook-records';
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -160,31 +161,41 @@ function toggleSection(id) {
     }
 
     function addAccount() {
-      const name = document.getElementById('newAccount').value.trim();
-      if (!name) return alert('請輸入帳戶名稱');
-      fetch(GAS_URL + '?action=addAccount&name=' + encodeURIComponent(name))
-        .then(res => res.text())
-        .then(alert)
-        .then(loadFormOptions);
-    }
+  const name = document.getElementById('newAccount').value.trim();
+  if (!name) return alert('請輸入帳戶名稱');
+  fetch(GAS_URL + '?action=addAccount&name=' + encodeURIComponent(name))
+    .then(res => res.text())
+    .then(msg => {
+      alert(msg);
+      document.getElementById('newAccount').value = ''; // ✅ 清空欄位
+      loadFormOptions();
+    });
+}
 
-    function addIncomeCategory() {
-      const name = document.getElementById('newIncomeCat').value.trim();
-      if (!name) return alert('請輸入收入類別名稱');
-      fetch(GAS_URL + '?action=addCategory&type=收入&name=' + encodeURIComponent(name))
-        .then(res => res.text())
-        .then(alert)
-        .then(loadFormOptions);
-    }
 
-    function addExpenseCategory() {
-      const name = document.getElementById('newExpenseCat').value.trim();
-      if (!name) return alert('請輸入支出類別名稱');
-      fetch(GAS_URL + '?action=addCategory&type=支出&name=' + encodeURIComponent(name))
-        .then(res => res.text())
-        .then(alert)
-        .then(loadFormOptions);
-    }
+function addIncomeCategory() {
+  const name = document.getElementById('newIncomeCat').value.trim();
+  if (!name) return alert('請輸入收入類別名稱');
+  fetch(GAS_URL + '?action=addCategory&type=收入&name=' + encodeURIComponent(name))
+    .then(res => res.text())
+    .then(msg => {
+      alert(msg);
+      document.getElementById('newIncomeCat').value = ''; // ✅ 清空欄位
+      loadFormOptions();
+    });
+}
+
+function addExpenseCategory() {
+  const name = document.getElementById('newExpenseCat').value.trim();
+  if (!name) return alert('請輸入支出類別名稱');
+  fetch(GAS_URL + '?action=addCategory&type=支出&name=' + encodeURIComponent(name))
+    .then(res => res.text())
+    .then(msg => {
+      alert(msg);
+      document.getElementById('newExpenseCat').value = ''; // ✅ 清空欄位
+      loadFormOptions();
+    });
+}
 
     function deleteAccount(name) {
       fetch(GAS_URL + '?action=deleteAccount&name=' + encodeURIComponent(name))
@@ -259,7 +270,6 @@ function toggleSection(id) {
         });
     }
 
-    const GAS_URL = 'https://mashin.t0884.workers.dev';
   </script>
 </body>
 </html>
