@@ -109,6 +109,9 @@
   <button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
   <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
 
+  <button class="toggle-btn" onclick="loadFixedExpenses()">📋 查看固定支出</button>
+  <div class="balances" id="fixedExpenseDisplay">📋 固定支出資料將顯示在這裡</div>
+
   <script>
     const STORAGE_KEY = 'fastbook-records';
     const GAS_URL = 'https://mashin.t0884.workers.dev';
@@ -259,20 +262,17 @@
           display.innerHTML = '⚠️ 無法取得雲端資料';
         });
     }
+function loadFixedExpenses() {
+  const display = document.getElementById('fixedExpenseDisplay');
+  display.innerHTML = '📋 固定支出載入中...';
 
-    // ✅ 檢查固定支出通知
-    function checkNotifications() {
-  fetch(`${GAS_URL}/?action=getNotifications`)
-    .then(res => res.json())
-    .then(list => {
-      if (list.length > 0) {
-        const msg = list.join('\n');
-        alert(`📢 固定支出已扣款：\n${msg}`);
-        fetch(`${GAS_URL}/?action=clearNotifications`);
-      }
+  fetch(`${GAS_URL}/?action=getFormOptions`) // 你可以換成更專門的 API，如 `getFixedExpenses`（若未來有做）
+    .then(() => {
+      const ssUrl = 'https://docs.google.com/spreadsheets/d/你的試算表ID/edit#gid=固定支出分頁GID';
+      display.innerHTML = `📌 請直接至 <a href="${ssUrl}" target="_blank">固定支出試算表</a> 查看或編輯。`;
     })
     .catch(() => {
-      console.warn('🔕 無法取得通知');
+      display.innerHTML = '⚠️ 無法載入固定支出資料';
     });
 }
 
