@@ -109,8 +109,8 @@
   <button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
   <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
 
-  <button class="toggle-btn" onclick="loadFixedExpenses()">📋 查看固定支出</button>
-  <div class="balances" id="fixedExpenseDisplay">📋 固定支出資料將顯示在這裡</div>
+  <button class="toggle-btn" onclick="toggleSection('fixedSection'); loadFixedExpenses()">📆 查看固定支出</button>
+  <div class="balances" id="fixedSection" style="display: none;">📆 固定支出將顯示在這裡</div>
 
   <script>
     const STORAGE_KEY = 'fastbook-records';
@@ -120,7 +120,6 @@
       const ym = new Date().toISOString().slice(0, 7);
       document.getElementById('queryMonth').value = ym;
       loadFormOptions();
-      checkNotifications(); // ✅ 檢查固定支出通知
     });
 
     function toggleSection(id) {
@@ -262,20 +261,28 @@
           display.innerHTML = '⚠️ 無法取得雲端資料';
         });
     }
-function loadFixedExpenses() {
-  const display = document.getElementById('fixedExpenseDisplay');
-  display.innerHTML = '📋 固定支出載入中...';
 
-  fetch(`${GAS_URL}/?action=getFormOptions`) // 你可以換成更專門的 API，如 `getFixedExpenses`（若未來有做）
-    .then(() => {
-      const ssUrl = 'https://docs.google.com/spreadsheets/d/你的試算表ID/edit#gid=固定支出分頁GID';
-      display.innerHTML = `📌 請直接至 <a href="${ssUrl}" target="_blank">固定支出試算表</a> 查看或編輯。`;
-    })
-    .catch(() => {
-      display.innerHTML = '⚠️ 無法載入固定支出資料';
-    });
-}
-
+    function loadFixedExpenses() {
+      const container = document.getElementById('fixedSection');
+      container.innerHTML = '⏳ 讀取中...';
+      fetch(`${GAS_URL}/?action=getFixedExpenses`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data || data.length === 0) {
+            container.innerHTML = '📭 無固定支出資料';
+            return;
+          }
+          let html = '<ul style="padding-left:20px;">';
+          data.forEach(item => {
+            html += `<li>📌 ${item.name}｜${item.account}｜${item.category}｜$${item.amount}｜${item.period}｜${item.due}｜已扣款：${item.notified}</li>`;
+          });
+          html += '</ul>';
+          container.innerHTML = html;
+        })
+        .catch(() => {
+          container.innerHTML = '⚠️ 無法讀取固定支出資料';
+        });
+    }
   </script>
 </body>
 </html>
