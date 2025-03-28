@@ -78,32 +78,27 @@
 
   <h3>🔧 編輯帳戶與類別</h3>
 
-<!-- 帳戶管理 -->
-<button class="toggle-btn" onclick="toggleSection('accountSection')">📂 帳戶管理</button>
-<div id="accountSection" style="display: none;">
-  <label>帳戶名稱 <input type="text" id="newAccount" /></label>
-  <button onclick="addAccount()">➕ 新增帳戶</button>
-  <ul id="accountListDisplay"></ul>
-</div>
+  <button class="toggle-btn" onclick="toggleSection('accountSection')">📂 帳戶管理</button>
+  <div id="accountSection" style="display: none;">
+    <label>帳戶名稱 <input type="text" id="newAccount" /></label>
+    <button onclick="addAccount()">➕ 新增帳戶</button>
+    <ul id="accountListDisplay"></ul>
+  </div>
 
-<!-- 收入類別管理 -->
-<button class="toggle-btn" onclick="toggleSection('incomeSection')">📂 收入類別管理</button>
-<div id="incomeSection" style="display: none;">
-  <label>收入類別 <input type="text" id="newIncomeCat" /></label>
-  <button onclick="addIncomeCategory()">➕ 新增收入類別</button>
-  <ul id="incomeCatListDisplay"></ul>
-</div>
+  <button class="toggle-btn" onclick="toggleSection('incomeSection')">📂 收入類別管理</button>
+  <div id="incomeSection" style="display: none;">
+    <label>收入類別 <input type="text" id="newIncomeCat" /></label>
+    <button onclick="addIncomeCategory()">➕ 新增收入類別</button>
+    <ul id="incomeCatListDisplay"></ul>
+  </div>
 
-<!-- 支出類別管理 -->
-<button class="toggle-btn" onclick="toggleSection('expenseSection')">📂 支出類別管理</button>
-<div id="expenseSection" style="display: none;">
-  <label>支出類別 <input type="text" id="newExpenseCat" /></label>
-  <button onclick="addExpenseCategory()">➕ 新增支出類別</button>
-  <ul id="expenseCatListDisplay"></ul>
-</div>
+  <button class="toggle-btn" onclick="toggleSection('expenseSection')">📂 支出類別管理</button>
+  <div id="expenseSection" style="display: none;">
+    <label>支出類別 <input type="text" id="newExpenseCat" /></label>
+    <button onclick="addExpenseCategory()">➕ 新增支出類別</button>
+    <ul id="expenseCatListDisplay"></ul>
+  </div>
 
-
-  <!-- 查詢功能 -->
   <button class="toggle-btn" onclick="loadBalances()">💰 查詢帳戶餘額</button>
   <div class="balances" id="balanceDisplay">💰 帳戶餘額將顯示在這裡</div>
 
@@ -115,27 +110,23 @@
   <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
 
   <script>
-    const GAS_URL = 'https://mashin.t0884.workers.dev';
     const STORAGE_KEY = 'fastbook-records';
+    const GAS_URL = 'https://mashin.t0884.workers.dev';
 
     document.addEventListener('DOMContentLoaded', () => {
       const ym = new Date().toISOString().slice(0, 7);
       document.getElementById('queryMonth').value = ym;
       loadFormOptions();
+      checkNotifications(); // ✅ 檢查固定支出通知
     });
 
-function toggleSection(id) {
-  const section = document.getElementById(id);
-  if (section.style.display === 'none') {
-    section.style.display = 'block';
-  } else {
-    section.style.display = 'none';
-  }
-}
-
+    function toggleSection(id) {
+      const section = document.getElementById(id);
+      section.style.display = section.style.display === 'none' ? 'block' : 'none';
+    }
 
     function loadFormOptions() {
-      fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
+      fetch(`${GAS_URL}/?action=getFormOptions`)
         .then(res => res.json())
         .then(options => {
           showList('accountListDisplay', options.accounts, deleteAccount);
@@ -161,51 +152,50 @@ function toggleSection(id) {
     }
 
     function addAccount() {
-  const name = document.getElementById('newAccount').value.trim();
-  if (!name) return alert('請輸入帳戶名稱');
-  fetch(GAS_URL + '?action=addAccount&name=' + encodeURIComponent(name))
-    .then(res => res.text())
-    .then(msg => {
-      alert(msg);
-      document.getElementById('newAccount').value = ''; // ✅ 清空欄位
-      loadFormOptions();
-    });
-}
+      const name = document.getElementById('newAccount').value.trim();
+      if (!name) return alert('請輸入帳戶名稱');
+      fetch(`${GAS_URL}/?action=addAccount&name=${encodeURIComponent(name)}`)
+        .then(res => res.text())
+        .then(alert)
+        .then(() => {
+          document.getElementById('newAccount').value = '';
+          loadFormOptions();
+        });
+    }
 
+    function addIncomeCategory() {
+      const name = document.getElementById('newIncomeCat').value.trim();
+      if (!name) return alert('請輸入收入類別名稱');
+      fetch(`${GAS_URL}/?action=addCategory&type=收入&name=${encodeURIComponent(name)}`)
+        .then(res => res.text())
+        .then(alert)
+        .then(() => {
+          document.getElementById('newIncomeCat').value = '';
+          loadFormOptions();
+        });
+    }
 
-function addIncomeCategory() {
-  const name = document.getElementById('newIncomeCat').value.trim();
-  if (!name) return alert('請輸入收入類別名稱');
-  fetch(GAS_URL + '?action=addCategory&type=收入&name=' + encodeURIComponent(name))
-    .then(res => res.text())
-    .then(msg => {
-      alert(msg);
-      document.getElementById('newIncomeCat').value = ''; // ✅ 清空欄位
-      loadFormOptions();
-    });
-}
-
-function addExpenseCategory() {
-  const name = document.getElementById('newExpenseCat').value.trim();
-  if (!name) return alert('請輸入支出類別名稱');
-  fetch(GAS_URL + '?action=addCategory&type=支出&name=' + encodeURIComponent(name))
-    .then(res => res.text())
-    .then(msg => {
-      alert(msg);
-      document.getElementById('newExpenseCat').value = ''; // ✅ 清空欄位
-      loadFormOptions();
-    });
-}
+    function addExpenseCategory() {
+      const name = document.getElementById('newExpenseCat').value.trim();
+      if (!name) return alert('請輸入支出類別名稱');
+      fetch(`${GAS_URL}/?action=addCategory&type=支出&name=${encodeURIComponent(name)}`)
+        .then(res => res.text())
+        .then(alert)
+        .then(() => {
+          document.getElementById('newExpenseCat').value = '';
+          loadFormOptions();
+        });
+    }
 
     function deleteAccount(name) {
-      fetch(GAS_URL + '?action=deleteAccount&name=' + encodeURIComponent(name))
+      fetch(`${GAS_URL}/?action=deleteAccount&name=${encodeURIComponent(name)}`)
         .then(res => res.text())
         .then(alert)
         .then(loadFormOptions);
     }
 
     function deleteCategory(type, name) {
-      fetch(GAS_URL + '?action=deleteCategory&type=' + encodeURIComponent(type) + '&name=' + encodeURIComponent(name))
+      fetch(`${GAS_URL}/?action=deleteCategory&type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`)
         .then(res => res.text())
         .then(alert)
         .then(loadFormOptions);
@@ -213,7 +203,7 @@ function addExpenseCategory() {
 
     function loadBalances() {
       document.getElementById('balanceDisplay').textContent = '⏳ 查詢中...';
-      fetch('https://mashin.t0884.workers.dev/balance')
+      fetch(`${GAS_URL}/balance`)
         .then(res => res.json())
         .then(data => {
           const html = data.map(acc => `<div>${acc.name}：$${Number(acc.balance).toLocaleString()}</div>`).join('');
@@ -247,7 +237,7 @@ function addExpenseCategory() {
       if (!month) return display.textContent = '⚠️ 請先選擇查詢的月份';
 
       display.innerHTML = '☁️ 雲端資料讀取中...';
-      fetch('https://mashin.t0884.workers.dev/', {
+      fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getMonthlyRecords', month })
@@ -270,6 +260,22 @@ function addExpenseCategory() {
         });
     }
 
+    // ✅ 檢查固定支出通知
+    function checkNotifications() {
+      fetch(`${GAS_URL}/?action=getNotifications`)
+        .then(res => res.json())
+        .then(list => {
+          if (list.length > 0) {
+            const msg = list.map(n => `📌 ${n.date}｜${n.name}｜$${n.amount}｜${n.account}`).join('\n');
+            alert(`📢 固定支出已扣款：\n${msg}`);
+            fetch(`${GAS_URL}/?action=clearNotifications`);
+          }
+        })
+        .catch(() => {
+          console.warn('🔕 無法取得通知');
+        });
+    }
   </script>
 </body>
 </html>
+
