@@ -265,23 +265,24 @@
     function loadFixedExpenses() {
       const container = document.getElementById('fixedSection');
       container.innerHTML = '⏳ 讀取中...';
-      fetch(`${GAS_URL}/?action=getFixedExpenses`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data || data.length === 0) {
-            container.innerHTML = '📭 無固定支出資料';
-            return;
-          }
-          let html = '<ul style="padding-left:20px;">';
-          data.forEach(item => {
-            html += `<li>📌 ${item.name}｜${item.account}｜${item.category}｜$${item.amount}｜${item.period}｜${item.due}｜已扣款：${item.notified}</li>`;
-          });
-          html += '</ul>';
-          container.innerHTML = html;
-        })
-        .catch(() => {
-          container.innerHTML = '⚠️ 無法讀取固定支出資料';
-        });
+fetch(`${GAS_URL}/?action=getFixedExpenses`)
+  .then(res => res.json())
+  .then(list => {
+    if (!list || list.length === 0) {
+      container.innerHTML = '📭 尚無固定支出資料';
+      return;
+    }
+
+    let html = '<ul style="padding-left:20px;">';
+    list.forEach(item => {
+      html += `<li>📌 ${item.name}｜${item.account}｜${item.category}｜$${item.amount}｜${item.note || ''}｜${item.period}｜${item.due}</li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+  })
+  .catch(() => {
+    container.innerHTML = '⚠️ 無法連接後端服務';
+  });
     }
   </script>
 </body>
