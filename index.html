@@ -15,8 +15,6 @@
       --text: #222;
       --muted: #aaa;
       --border: #ddd;
-      --icon-bg: #efefef;
-      --highlight: #cccccc;
     }
     body {
       font-family: 'Noto Sans TC', sans-serif;
@@ -32,7 +30,6 @@
     label {
       display: block;
       margin-top: 30px;
-      font-size: 30px;
     }
     select, input, button {
       width: 100%;
@@ -41,11 +38,10 @@
       margin-top: 9px;
       border-radius: 18px;
       border: 1px solid var(--border);
-      box-sizing: border-box;
       background: var(--card-bg);
       color: var(--text);
     }
-    input[type="number"] {
+    input[type="text"] {
       color: #000;
     }
     button {
@@ -58,10 +54,6 @@
     }
     button:hover:not(:disabled) {
       background: #444;
-    }
-    button:disabled {
-      background: var(--muted);
-      cursor: not-allowed;
     }
     .message {
       margin-top: 30px;
@@ -78,8 +70,56 @@
       padding: 21px;
       border-radius: 18px;
       border: 1px solid var(--border);
+    }
+
+    /* 🔢 計算機樣式 */
+    #calcOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      z-index: 999;
+    }
+    #calculator {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 3px solid #ccc;
+      padding: 20px;
+      font-size: 30px;
+      z-index: 1000;
+      display: none;
+    }
+    #calcDisplay {
       width: 100%;
-      box-sizing: border-box;
+      font-size: 42px;
+      text-align: right;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: none;
+      background: #f5f5f5;
+      border-radius: 12px;
+    }
+    #calculator button {
+      font-size: 30px;
+      padding: 18px;
+      background: #eee;
+      border: none;
+      border-radius: 12px;
+      color: #000;
+      font-weight: bold;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    #calculator button:active {
+      transform: scale(0.95);
+      box-shadow: inset 0 0 5px #999;
+    }
+    #calculator .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
     }
   </style>
 </head>
@@ -92,26 +132,23 @@
         <option value="支出">支出</option>
       </select>
     </label>
-    <label>日期<input type="date" id="date" required></label>
-    <label>帳戶
-      <select id="account" required></select>
-    </label>
-    <label>類別
-      <select id="category" required></select>
-    </label>
-    <label>金額<input type="number" id="amount" required></label>
-    <label>內容<input type="text" id="note"></label>
+    <label>日期 <input type="date" id="date" required></label>
+    <label>帳戶 <select id="account" required></select></label>
+    <label>類別 <select id="category" required></select></label>
+    <label>金額 <input id="amount" type="text" readonly required></label>
+    <label>內容 <input type="text" id="note"></label>
     <button type="submit">儲存到本機</button>
   </form>
+
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
   <button class="toggle-btn" onclick="location.href='options.html'">⚙️ 開啟選項設定</button>
   <div class="message" id="msg"></div>
 
-  <!-- 🔢 自訂計算機 -->
-  <div id="calcOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999;"></div>
-  <div id="calculator" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:3px solid #ccc; padding:30px 20px 20px; font-size:48px; z-index:1000; transform: scale(1.5); transform-origin: bottom center;">
-    <input id="calcDisplay" readonly style="width:100%; font-size:48px; text-align:right; margin-bottom:20px; padding:15px; border:none; background:#f5f5f5; border-radius:12px; overflow-x:auto;" />
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
+  <!-- 🔢 計算機元件 -->
+  <div id="calcOverlay"></div>
+  <div id="calculator">
+    <input id="calcDisplay" readonly />
+    <div class="grid">
       <button onclick="press('7')">7</button>
       <button onclick="press('8')">8</button>
       <button onclick="press('9')">9</button>
@@ -147,32 +184,30 @@
         accountList = options.accounts;
         updateCategoryOptions();
         updateAccountOptions();
-      })
-      .catch(() => document.getElementById('msg').textContent = '⚠️ 無法載入選項');
+      });
 
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
     function updateCategoryOptions() {
-      const type = document.getElementById('type').value;
-      const select = document.getElementById('category');
-      select.innerHTML = '';
-      const list = type === '收入' ? incomeCategories : expenseCategories;
+      const list = document.getElementById('type').value === '收入' ? incomeCategories : expenseCategories;
+      const catSelect = document.getElementById('category');
+      catSelect.innerHTML = '';
       list.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat;
         option.textContent = cat;
-        select.appendChild(option);
+        catSelect.appendChild(option);
       });
     }
 
     function updateAccountOptions() {
-      const select = document.getElementById('account');
-      select.innerHTML = '';
+      const accSelect = document.getElementById('account');
+      accSelect.innerHTML = '';
       accountList.forEach(acc => {
         const option = document.createElement('option');
         option.value = acc;
         option.textContent = acc;
-        select.appendChild(option);
+        accSelect.appendChild(option);
       });
     }
 
@@ -198,11 +233,10 @@
 
     function syncData() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      if (data.length === 0) return alert('目前沒有可同步的資料');
-      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
-
+      if (!data.length) return alert('目前沒有可同步的資料');
+      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？`)) return;
       const baseUrl = 'https://mashin.t0884.workers.dev/';
-      let successCount = 0, failCount = 0;
+      let success = 0, fail = 0;
 
       (async () => {
         for (const item of data) {
@@ -222,27 +256,24 @@
               body: JSON.stringify(payload)
             });
             const text = await res.text();
-            if (text.includes('OK')) successCount++;
-            else failCount++;
-          } catch {
-            failCount++;
-          }
+            if (text.includes('OK')) success++;
+            else fail++;
+          } catch { fail++; }
         }
-        if (failCount === 0) localStorage.removeItem(STORAGE_KEY);
-        alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+        if (fail === 0) localStorage.removeItem(STORAGE_KEY);
+        alert(`✅ 同步完成\n成功：${success} 筆\n失敗：${fail} 筆`);
       })();
     }
 
-    // PWA 註冊
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
 
-    // 🔢 計算機功能
-    const amountInput = document.getElementById('amount');
+    // 🔢 計算機邏輯
     const calcOverlay = document.getElementById('calcOverlay');
     const calculator = document.getElementById('calculator');
     const calcDisplay = document.getElementById('calcDisplay');
+    const amountInput = document.getElementById('amount');
     let calcValue = '';
 
     amountInput.addEventListener('focus', e => {
@@ -265,7 +296,6 @@
     }
 
     function press(val) {
-      navigator.vibrate?.(30); // ✅ 手機震動
       calcValue += val;
       calcDisplay.value = calcValue;
     }
@@ -289,24 +319,7 @@
       amountInput.value = parseFloat(calcValue) || 0;
       hideCalculator();
     }
-
-    // 按壓動畫樣式
-    const style = document.createElement('style');
-    style.innerHTML = `
-      #calculator button {
-        font-size: 36px;
-        padding: 18px;
-        background: #eee;
-        border: none;
-        border-radius: 12px;
-        transition: transform 0.1s, box-shadow 0.1s;
-      }
-      #calculator button:active {
-        transform: scale(0.95);
-        box-shadow: inset 0 0 5px #999;
-      }
-    `;
-    document.head.appendChild(style);
   </script>
 </body>
 </html>
+
