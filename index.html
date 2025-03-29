@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#666666">
-  <link rel="manifest" href="./manifest.json">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#666666" />
+  <link rel="manifest" href="./manifest.json" />
   <title>極速記帳</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
@@ -81,41 +81,6 @@
       width: 100%;
       box-sizing: border-box;
     }
-    .calculator {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #fff;
-      border-top: 2px solid #ccc;
-      display: none;
-      flex-wrap: wrap;
-      justify-content: space-around;
-      padding: 20px;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
-      z-index: 9999;
-    }
-    .calc-btn {
-      width: 22%;
-      margin: 10px 0;
-      padding: 20px;
-      font-size: 28px;
-      background: #eee;
-      border: none;
-      border-radius: 12px;
-      font-weight: bold;
-      color: #333;
-    }
-    .calc-display {
-      width: 100%;
-      font-size: 32px;
-      text-align: right;
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #f8f8f8;
-      border-radius: 10px;
-    }
-
   </style>
 </head>
 <body>
@@ -141,24 +106,29 @@
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
   <button class="toggle-btn" onclick="location.href='options.html'">⚙️ 開啟選項設定</button>
   <div class="message" id="msg"></div>
-  <div class="calculator" id="calculator">
-    <div class="calc-display" id="calcDisplay">0</div>
-    <button class="calc-btn" onclick="appendCalc('7')">7</button>
-    <button class="calc-btn" onclick="appendCalc('8')">8</button>
-    <button class="calc-btn" onclick="appendCalc('9')">9</button>
-    <button class="calc-btn" onclick="appendCalc('+')">+</button>
-    <button class="calc-btn" onclick="appendCalc('4')">4</button>
-    <button class="calc-btn" onclick="appendCalc('5')">5</button>
-    <button class="calc-btn" onclick="appendCalc('6')">6</button>
-    <button class="calc-btn" onclick="appendCalc('00')">00</button>
-    <button class="calc-btn" onclick="appendCalc('1')">1</button>
-    <button class="calc-btn" onclick="appendCalc('2')">2</button>
-    <button class="calc-btn" onclick="appendCalc('3')">3</button>
-    <button class="calc-btn" onclick="appendCalc('0')">0</button>
-    <button class="calc-btn" onclick="appendCalc('.')">.</button>
-    <button class="calc-btn" onclick="calculate()">=</button>
-    <button class="calc-btn" onclick="clearCalc()">清除</button>
-    <button class="calc-btn" style="background:#666;color:white;" onclick="applyCalc()">OK</button>
+
+  <!-- 🔢 自訂計算機 -->
+  <div id="calcOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999;"></div>
+  <div id="calculator" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:3px solid #ccc; padding:30px 20px 20px; font-size:48px; z-index:1000; transform: scale(1.5); transform-origin: bottom center;">
+    <input id="calcDisplay" readonly style="width:100%; font-size:48px; text-align:right; margin-bottom:20px; padding:15px; border:none; background:#f5f5f5; border-radius:12px; overflow-x:auto;" />
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
+      <button onclick="press('7')">7</button>
+      <button onclick="press('8')">8</button>
+      <button onclick="press('9')">9</button>
+      <button onclick="press('+')">+</button>
+      <button onclick="press('4')">4</button>
+      <button onclick="press('5')">5</button>
+      <button onclick="press('6')">6</button>
+      <button onclick="press('00')">00</button>
+      <button onclick="press('1')">1</button>
+      <button onclick="press('2')">2</button>
+      <button onclick="press('3')">3</button>
+      <button onclick="press('0')">0</button>
+      <button onclick="press('.')">.</button>
+      <button onclick="calculate()">=</button>
+      <button onclick="deleteLast()">刪除</button>
+      <button onclick="confirmValue()" style="background:#444; color:#fff;">OK</button>
+    </div>
   </div>
 
   <script>
@@ -166,9 +136,8 @@
       document.getElementById('date').valueAsDate = new Date();
     });
 
-    let incomeCategories = [];
-    let expenseCategories = [];
-    let accountList = [];
+    const STORAGE_KEY = 'fastbook-records';
+    let incomeCategories = [], expenseCategories = [], accountList = [];
 
     fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
       .then(res => res.json())
@@ -176,15 +145,10 @@
         incomeCategories = options.incomeCategories;
         expenseCategories = options.expenseCategories;
         accountList = options.accounts;
-
         updateCategoryOptions();
         updateAccountOptions();
       })
-      .catch(() => {
-        document.getElementById('msg').textContent = '⚠️ 無法載入選項';
-      });
-
-    const STORAGE_KEY = 'fastbook-records';
+      .catch(() => document.getElementById('msg').textContent = '⚠️ 無法載入選項');
 
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
@@ -235,12 +199,10 @@
     function syncData() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       if (data.length === 0) return alert('目前沒有可同步的資料');
-
       if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
 
       const baseUrl = 'https://mashin.t0884.workers.dev/';
-      let successCount = 0;
-      let failCount = 0;
+      let successCount = 0, failCount = 0;
 
       (async () => {
         for (const item of data) {
@@ -253,7 +215,6 @@
             catIn: item.type === '收入' ? item.category : '',
             catOut: item.type === '支出' ? item.category : ''
           };
-
           try {
             const res = await fetch(baseUrl, {
               method: 'POST',
@@ -263,63 +224,89 @@
             const text = await res.text();
             if (text.includes('OK')) successCount++;
             else failCount++;
-          } catch (err) {
+          } catch {
             failCount++;
           }
         }
-
-        if (failCount === 0) {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-
+        if (failCount === 0) localStorage.removeItem(STORAGE_KEY);
         alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
       })();
     }
 
+    // PWA 註冊
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
-    let calcValue = '';
 
+    // 🔢 計算機功能
     const amountInput = document.getElementById('amount');
+    const calcOverlay = document.getElementById('calcOverlay');
     const calculator = document.getElementById('calculator');
     const calcDisplay = document.getElementById('calcDisplay');
+    let calcValue = '';
 
-    amountInput.addEventListener('focus', () => {
-      amountInput.blur(); // 阻止原生鍵盤
-      calculator.style.display = 'flex';
-      calcValue = '';
-      calcDisplay.textContent = '0';
+    amountInput.addEventListener('focus', e => {
+      e.preventDefault();
+      showCalculator();
     });
 
-    function appendCalc(val) {
-      calcValue += val;
-      calcDisplay.textContent = calcValue;
+    calcOverlay.addEventListener('click', hideCalculator);
+
+    function showCalculator() {
+      calcValue = '';
+      calcDisplay.value = '0';
+      calculator.style.display = 'block';
+      calcOverlay.style.display = 'block';
     }
 
-    function clearCalc() {
-      calcValue = '';
-      calcDisplay.textContent = '0';
+    function hideCalculator() {
+      calculator.style.display = 'none';
+      calcOverlay.style.display = 'none';
+    }
+
+    function press(val) {
+      navigator.vibrate?.(30); // ✅ 手機震動
+      calcValue += val;
+      calcDisplay.value = calcValue;
     }
 
     function calculate() {
       try {
         const result = eval(calcValue.replace(/[^0-9.+\-*/]/g, ''));
-        calcDisplay.textContent = result;
         calcValue = result.toString();
+        calcDisplay.value = calcValue;
       } catch {
-        calcDisplay.textContent = '錯誤';
-        calcValue = '';
+        calcDisplay.value = '錯誤';
       }
     }
 
-    function applyCalc() {
-      calculate();
-      amountInput.value = calcValue;
-      calculator.style.display = 'none';
+    function deleteLast() {
+      calcValue = calcValue.slice(0, -1);
+      calcDisplay.value = calcValue || '0';
     }
 
+    function confirmValue() {
+      amountInput.value = parseFloat(calcValue) || 0;
+      hideCalculator();
+    }
+
+    // 按壓動畫樣式
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #calculator button {
+        font-size: 36px;
+        padding: 18px;
+        background: #eee;
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+      #calculator button:active {
+        transform: scale(0.95);
+        box-shadow: inset 0 0 5px #999;
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
-
