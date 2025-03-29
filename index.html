@@ -81,6 +81,41 @@
       width: 100%;
       box-sizing: border-box;
     }
+    .calculator {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      border-top: 2px solid #ccc;
+      display: none;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      padding: 20px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+      z-index: 9999;
+    }
+    .calc-btn {
+      width: 22%;
+      margin: 10px 0;
+      padding: 20px;
+      font-size: 28px;
+      background: #eee;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      color: #333;
+    }
+    .calc-display {
+      width: 100%;
+      font-size: 32px;
+      text-align: right;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f8f8f8;
+      border-radius: 10px;
+    }
+
   </style>
 </head>
 <body>
@@ -106,6 +141,25 @@
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
   <button class="toggle-btn" onclick="location.href='options.html'">⚙️ 開啟選項設定</button>
   <div class="message" id="msg"></div>
+  <div class="calculator" id="calculator">
+    <div class="calc-display" id="calcDisplay">0</div>
+    <button class="calc-btn" onclick="appendCalc('7')">7</button>
+    <button class="calc-btn" onclick="appendCalc('8')">8</button>
+    <button class="calc-btn" onclick="appendCalc('9')">9</button>
+    <button class="calc-btn" onclick="appendCalc('+')">+</button>
+    <button class="calc-btn" onclick="appendCalc('4')">4</button>
+    <button class="calc-btn" onclick="appendCalc('5')">5</button>
+    <button class="calc-btn" onclick="appendCalc('6')">6</button>
+    <button class="calc-btn" onclick="appendCalc('00')">00</button>
+    <button class="calc-btn" onclick="appendCalc('1')">1</button>
+    <button class="calc-btn" onclick="appendCalc('2')">2</button>
+    <button class="calc-btn" onclick="appendCalc('3')">3</button>
+    <button class="calc-btn" onclick="appendCalc('0')">0</button>
+    <button class="calc-btn" onclick="appendCalc('.')">.</button>
+    <button class="calc-btn" onclick="calculate()">=</button>
+    <button class="calc-btn" onclick="clearCalc()">清除</button>
+    <button class="calc-btn" style="background:#666;color:white;" onclick="applyCalc()">OK</button>
+  </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -225,6 +279,46 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
+    let calcValue = '';
+
+    const amountInput = document.getElementById('amount');
+    const calculator = document.getElementById('calculator');
+    const calcDisplay = document.getElementById('calcDisplay');
+
+    amountInput.addEventListener('focus', () => {
+      amountInput.blur(); // 阻止原生鍵盤
+      calculator.style.display = 'flex';
+      calcValue = '';
+      calcDisplay.textContent = '0';
+    });
+
+    function appendCalc(val) {
+      calcValue += val;
+      calcDisplay.textContent = calcValue;
+    }
+
+    function clearCalc() {
+      calcValue = '';
+      calcDisplay.textContent = '0';
+    }
+
+    function calculate() {
+      try {
+        const result = eval(calcValue.replace(/[^0-9.+\-*/]/g, ''));
+        calcDisplay.textContent = result;
+        calcValue = result.toString();
+      } catch {
+        calcDisplay.textContent = '錯誤';
+        calcValue = '';
+      }
+    }
+
+    function applyCalc() {
+      calculate();
+      amountInput.value = calcValue;
+      calculator.style.display = 'none';
+    }
+
   </script>
 </body>
 </html>
