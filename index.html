@@ -1,27 +1,19 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#666666">
-  <link rel="manifest" href="./manifest.json">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#666666" />
+  <link rel="manifest" href="./manifest.json" />
   <title>極速記帳</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-    :root {
-      --bg: #ffffff;
-      --card-bg: #f8f8f8;
-      --accent: #666;
-      --text: #222;
-      --muted: #aaa;
-      --border: #ddd;
-    }
     body {
       font-family: 'Noto Sans TC', sans-serif;
       padding: 40px;
-      background: var(--bg);
+      background: #fff;
       font-size: 30px;
-      color: var(--text);
+      color: #222;
     }
     h2 {
       font-size: 42px;
@@ -38,13 +30,13 @@
       font-size: 30px;
       margin-top: 9px;
       border-radius: 18px;
-      border: 1px solid var(--border);
+      border: 1px solid #ddd;
       box-sizing: border-box;
-      background: var(--card-bg);
-      color: var(--text);
+      background: #f8f8f8;
+      color: #222;
     }
     button {
-      background: var(--accent);
+      background: #666;
       color: #fff;
       border: none;
       margin-top: 45px;
@@ -55,24 +47,24 @@
       background: #444;
     }
     button:disabled {
-      background: var(--muted);
+      background: #aaa;
       cursor: not-allowed;
     }
     .message {
       margin-top: 30px;
-      color: var(--accent);
       font-weight: bold;
       font-size: 30px;
+      color: #666;
     }
     .toggle-btn {
-      background: var(--card-bg);
-      color: var(--accent);
+      background: #f0f0f0;
+      color: #666;
       font-weight: bold;
       font-size: 30px;
       margin-top: 30px;
       padding: 21px;
       border-radius: 18px;
-      border: 1px solid var(--border);
+      border: 1px solid #ccc;
       width: 100%;
       box-sizing: border-box;
     }
@@ -87,15 +79,15 @@
         <option value="支出">支出</option>
       </select>
     </label>
-    <label>日期<input type="date" id="date" required></label>
+    <label>日期<input type="date" id="date" required /></label>
     <label>帳戶
       <select id="account" required></select>
     </label>
     <label>類別
       <select id="category" required></select>
     </label>
-    <label>金額<input type="number" id="amount" required></label>
-    <label>內容<input type="text" id="note"></label>
+    <label>金額<input type="number" id="amount" required /></label>
+    <label>內容<input type="text" id="note" /></label>
     <button type="submit">儲存到本機</button>
   </form>
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
@@ -103,31 +95,59 @@
   <div class="message" id="msg"></div>
 
   <script>
+    const STORAGE_KEY = 'fastbook-records';
+    const CACHE_KEY = 'fastbook-options';
+    const GAS_URL = 'https://mashin.t0884.workers.dev';
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('date').valueAsDate = new Date();
+      loadCachedOptions();
+      fetchOptionsFromCloud(); // 更新快取資料
     });
 
+    document.getElementById('type').addEventListener('change', updateCategoryOptions);
+
+    function loadCachedOptions() {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+      if (cached.accounts && cached.incomeCategories && cached.expenseCategories) {
+        populateOptions(cached);
+      }
+    }
+
+    function fetchOptionsFromCloud() {
+      fetch(`${GAS_URL}/?action=getFormOptions`)
+        .then(res => res.json())
+        .then(data => {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          populateOptions(data);
+        })
+        .catch(() => {
+          console.warn('無法取得雲端選項');
+        });
+    }
+
+    let accountList = [];
     let incomeCategories = [];
     let expenseCategories = [];
-    let accountList = [];
 
-    fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
-      .then(res => res.json())
-      .then(options => {
-        incomeCategories = options.incomeCategories;
-        expenseCategories = options.expenseCategories;
-        accountList = options.accounts;
+    function populateOptions(data) {
+      accountList = data.accounts || [];
+      incomeCategories = data.incomeCategories || [];
+      expenseCategories = data.expenseCategories || [];
+      updateAccountOptions();
+      updateCategoryOptions();
+    }
 
-        updateCategoryOptions();
-        updateAccountOptions();
-      })
-      .catch(() => {
-        document.getElementById('msg').textContent = '⚠️ 無法載入選項';
+    function updateAccountOptions() {
+      const select = document.getElementById('account');
+      select.innerHTML = '';
+      accountList.forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = acc;
+        opt.textContent = acc;
+        select.appendChild(opt);
       });
-
-    const STORAGE_KEY = 'fastbook-records';
-
-    document.getElementById('type').addEventListener('change', updateCategoryOptions);
+    }
 
     function updateCategoryOptions() {
       const type = document.getElementById('type').value;
@@ -135,21 +155,10 @@
       select.innerHTML = '';
       const list = type === '收入' ? incomeCategories : expenseCategories;
       list.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        select.appendChild(option);
-      });
-    }
-
-    function updateAccountOptions() {
-      const select = document.getElementById('account');
-      select.innerHTML = '';
-      accountList.forEach(acc => {
-        const option = document.createElement('option');
-        option.value = acc;
-        option.textContent = acc;
-        select.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
       });
     }
 
@@ -170,19 +179,14 @@
       document.getElementById('form').reset();
       document.getElementById('date').valueAsDate = new Date();
       updateCategoryOptions();
-      updateAccountOptions();
     });
 
     function syncData() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       if (data.length === 0) return alert('目前沒有可同步的資料');
-
       if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
 
-      const baseUrl = 'https://mashin.t0884.workers.dev/';
-      let successCount = 0;
-      let failCount = 0;
-
+      let success = 0, fail = 0;
       (async () => {
         for (const item of data) {
           const payload = {
@@ -194,42 +198,27 @@
             catIn: item.type === '收入' ? item.category : '',
             catOut: item.type === '支出' ? item.category : ''
           };
-
           try {
-            const res = await fetch(baseUrl, {
+            const res = await fetch(GAS_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
             const text = await res.text();
-            if (text.includes('OK')) successCount++;
-            else failCount++;
-          } catch (err) {
-            failCount++;
+            if (text.includes('OK')) success++;
+            else fail++;
+          } catch {
+            fail++;
           }
         }
-
-        if (failCount === 0) {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-
-        alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
+        if (fail === 0) localStorage.removeItem(STORAGE_KEY);
+        alert(`✅ 同步完成\n成功：${success} 筆\n失敗：${fail} 筆`);
       })();
     }
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
-
-    // ✅ 禁止雙擊放大
-    let lastTouch = 0;
-    document.addEventListener('touchend', (e) => {
-      const now = new Date().getTime();
-      if (now - lastTouch <= 300) {
-        e.preventDefault();
-      }
-      lastTouch = now;
-    }, { passive: false });
   </script>
 </body>
 </html>
