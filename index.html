@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#666666" />
-  <link rel="manifest" href="./manifest.json" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#666666">
+  <link rel="manifest" href="./manifest.json">
   <title>極速記帳</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
@@ -30,6 +30,7 @@
     label {
       display: block;
       margin-top: 30px;
+      font-size: 30px;
     }
     select, input, button {
       width: 100%;
@@ -38,11 +39,9 @@
       margin-top: 9px;
       border-radius: 18px;
       border: 1px solid var(--border);
+      box-sizing: border-box;
       background: var(--card-bg);
       color: var(--text);
-    }
-    input[type="text"] {
-      color: #000;
     }
     button {
       background: var(--accent);
@@ -54,6 +53,10 @@
     }
     button:hover:not(:disabled) {
       background: #444;
+    }
+    button:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
     }
     .message {
       margin-top: 30px;
@@ -70,56 +73,8 @@
       padding: 21px;
       border-radius: 18px;
       border: 1px solid var(--border);
-    }
-
-    /* 🔢 計算機樣式 */
-    #calcOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      display: none;
-      z-index: 999;
-    }
-    #calculator {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border-top: 3px solid #ccc;
-      padding: 20px;
-      font-size: 30px;
-      z-index: 1000;
-      display: none;
-    }
-    #calcDisplay {
       width: 100%;
-      font-size: 42px;
-      text-align: right;
-      padding: 15px;
-      margin-bottom: 20px;
-      border: none;
-      background: #f5f5f5;
-      border-radius: 12px;
-    }
-    #calculator button {
-      font-size: 30px;
-      padding: 18px;
-      background: #eee;
-      border: none;
-      border-radius: 12px;
-      color: #000;
-      font-weight: bold;
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    #calculator button:active {
-      transform: scale(0.95);
-      box-shadow: inset 0 0 5px #999;
-    }
-    #calculator .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
+      box-sizing: border-box;
     }
   </style>
 </head>
@@ -132,49 +87,29 @@
         <option value="支出">支出</option>
       </select>
     </label>
-    <label>日期 <input type="date" id="date" required></label>
-    <label>帳戶 <select id="account" required></select></label>
-    <label>類別 <select id="category" required></select></label>
-    <label>金額 <input id="amount" type="text" readonly required></label>
-    <label>內容 <input type="text" id="note"></label>
+    <label>日期<input type="date" id="date" required></label>
+    <label>帳戶
+      <select id="account" required></select>
+    </label>
+    <label>類別
+      <select id="category" required></select>
+    </label>
+    <label>金額<input type="number" id="amount" required></label>
+    <label>內容<input type="text" id="note"></label>
     <button type="submit">儲存到本機</button>
   </form>
-
   <button class="toggle-btn" onclick="syncData()">手動同步到主系統</button>
   <button class="toggle-btn" onclick="location.href='options.html'">⚙️ 開啟選項設定</button>
   <div class="message" id="msg"></div>
-
-  <!-- 🔢 計算機元件 -->
-  <div id="calcOverlay"></div>
-  <div id="calculator">
-    <input id="calcDisplay" readonly />
-    <div class="grid">
-      <button onclick="press('7')">7</button>
-      <button onclick="press('8')">8</button>
-      <button onclick="press('9')">9</button>
-      <button onclick="press('+')">+</button>
-      <button onclick="press('4')">4</button>
-      <button onclick="press('5')">5</button>
-      <button onclick="press('6')">6</button>
-      <button onclick="press('00')">00</button>
-      <button onclick="press('1')">1</button>
-      <button onclick="press('2')">2</button>
-      <button onclick="press('3')">3</button>
-      <button onclick="press('0')">0</button>
-      <button onclick="press('.')">.</button>
-      <button onclick="calculate()">=</button>
-      <button onclick="deleteLast()">刪除</button>
-      <button onclick="confirmValue()" style="background:#444; color:#fff;">OK</button>
-    </div>
-  </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('date').valueAsDate = new Date();
     });
 
-    const STORAGE_KEY = 'fastbook-records';
-    let incomeCategories = [], expenseCategories = [], accountList = [];
+    let incomeCategories = [];
+    let expenseCategories = [];
+    let accountList = [];
 
     fetch('https://mashin.t0884.workers.dev/?action=getFormOptions')
       .then(res => res.json())
@@ -182,32 +117,39 @@
         incomeCategories = options.incomeCategories;
         expenseCategories = options.expenseCategories;
         accountList = options.accounts;
+
         updateCategoryOptions();
         updateAccountOptions();
+      })
+      .catch(() => {
+        document.getElementById('msg').textContent = '⚠️ 無法載入選項';
       });
+
+    const STORAGE_KEY = 'fastbook-records';
 
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
     function updateCategoryOptions() {
-      const list = document.getElementById('type').value === '收入' ? incomeCategories : expenseCategories;
-      const catSelect = document.getElementById('category');
-      catSelect.innerHTML = '';
+      const type = document.getElementById('type').value;
+      const select = document.getElementById('category');
+      select.innerHTML = '';
+      const list = type === '收入' ? incomeCategories : expenseCategories;
       list.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat;
         option.textContent = cat;
-        catSelect.appendChild(option);
+        select.appendChild(option);
       });
     }
 
     function updateAccountOptions() {
-      const accSelect = document.getElementById('account');
-      accSelect.innerHTML = '';
+      const select = document.getElementById('account');
+      select.innerHTML = '';
       accountList.forEach(acc => {
         const option = document.createElement('option');
         option.value = acc;
         option.textContent = acc;
-        accSelect.appendChild(option);
+        select.appendChild(option);
       });
     }
 
@@ -233,10 +175,13 @@
 
     function syncData() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      if (!data.length) return alert('目前沒有可同步的資料');
-      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？`)) return;
+      if (data.length === 0) return alert('目前沒有可同步的資料');
+
+      if (!confirm(`確定要同步 ${data.length} 筆資料嗎？\n（將逐筆寫入雲端）`)) return;
+
       const baseUrl = 'https://mashin.t0884.workers.dev/';
-      let success = 0, fail = 0;
+      let successCount = 0;
+      let failCount = 0;
 
       (async () => {
         for (const item of data) {
@@ -249,6 +194,7 @@
             catIn: item.type === '收入' ? item.category : '',
             catOut: item.type === '支出' ? item.category : ''
           };
+
           try {
             const res = await fetch(baseUrl, {
               method: 'POST',
@@ -256,12 +202,18 @@
               body: JSON.stringify(payload)
             });
             const text = await res.text();
-            if (text.includes('OK')) success++;
-            else fail++;
-          } catch { fail++; }
+            if (text.includes('OK')) successCount++;
+            else failCount++;
+          } catch (err) {
+            failCount++;
+          }
         }
-        if (fail === 0) localStorage.removeItem(STORAGE_KEY);
-        alert(`✅ 同步完成\n成功：${success} 筆\n失敗：${fail} 筆`);
+
+        if (failCount === 0) {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+
+        alert(`✅ 同步完成\n成功：${successCount} 筆\n失敗：${failCount} 筆`);
       })();
     }
 
@@ -269,57 +221,15 @@
       navigator.serviceWorker.register('./service-worker.js');
     }
 
-    // 🔢 計算機邏輯
-    const calcOverlay = document.getElementById('calcOverlay');
-    const calculator = document.getElementById('calculator');
-    const calcDisplay = document.getElementById('calcDisplay');
-    const amountInput = document.getElementById('amount');
-    let calcValue = '';
-
-    amountInput.addEventListener('focus', e => {
-      e.preventDefault();
-      showCalculator();
-    });
-
-    calcOverlay.addEventListener('click', hideCalculator);
-
-    function showCalculator() {
-      calcValue = '';
-      calcDisplay.value = '0';
-      calculator.style.display = 'block';
-      calcOverlay.style.display = 'block';
-    }
-
-    function hideCalculator() {
-      calculator.style.display = 'none';
-      calcOverlay.style.display = 'none';
-    }
-
-    function press(val) {
-      calcValue += val;
-      calcDisplay.value = calcValue;
-    }
-
-    function calculate() {
-      try {
-        const result = eval(calcValue.replace(/[^0-9.+\-*/]/g, ''));
-        calcValue = result.toString();
-        calcDisplay.value = calcValue;
-      } catch {
-        calcDisplay.value = '錯誤';
+    // ✅ 禁止雙擊放大
+    let lastTouch = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = new Date().getTime();
+      if (now - lastTouch <= 300) {
+        e.preventDefault();
       }
-    }
-
-    function deleteLast() {
-      calcValue = calcValue.slice(0, -1);
-      calcDisplay.value = calcValue || '0';
-    }
-
-    function confirmValue() {
-      amountInput.value = parseFloat(calcValue) || 0;
-      hideCalculator();
-    }
+      lastTouch = now;
+    }, { passive: false });
   </script>
 </body>
 </html>
-
