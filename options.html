@@ -200,8 +200,15 @@
       filtered.forEach(r => {
         html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
       });
-      html += '</ul>';
-      display.innerHTML = html;
+let incomeTotal = 0;
+let expenseTotal = 0;
+filtered.forEach(r => {
+  if (r.type === '收入') incomeTotal += Number(r.amount);
+  if (r.type === '支出') expenseTotal += Number(r.amount);
+});
+html += '</ul>';
+html += `<div>📊 統計：收入總額 $${incomeTotal}｜支出總額 $${expenseTotal}</div>`;
+display.innerHTML = html;
     }
 
     function showCloudRecords() {
@@ -237,8 +244,15 @@
           filtered.forEach(r => {
             html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
           });
-          html += '</ul>';
-          display.innerHTML = html;
+let incomeTotal = 0;
+let expenseTotal = 0;
+filtered.forEach(r => {
+  if (r.type === '收入') incomeTotal += Number(r.amount);
+  if (r.type === '支出') expenseTotal += Number(r.amount);
+});
+html += '</ul>';
+html += `<div>📊 統計：收入總額 $${incomeTotal}｜支出總額 $${expenseTotal}</div>`;
+display.innerHTML = html;
         })
         .catch(() => {
           display.innerHTML = '⚠️ 無法取得雲端資料';
