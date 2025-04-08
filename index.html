@@ -77,15 +77,23 @@
       <select id="type">
         <option value="收入">收入</option>
         <option value="支出">支出</option>
+        <option value="轉帳">轉帳</option>
       </select>
     </label>
     <label>日期<input type="date" id="date" required /></label>
-    <label>帳戶
-      <select id="account" required></select>
-    </label>
-    <label>類別
-      <select id="category" required></select>
-    </label>
+<div id="accountSection">
+  <label id="fromAccountLabel">帳戶
+    <select id="fromAccount" required></select>
+  </label>
+  <label id="toAccountLabel" style="display: none;">轉入帳戶
+    <select id="toAccount"></select>
+  </label>
+</div>
+    <div id="categorySection">
+  <label>類別
+    <select id="category" required></select>
+  </label>
+</div>
     <label>金額<input type="number" id="amount" required /></label>
     <label>內容<input type="text" id="note" /></label>
     <button type="submit">儲存到本機</button>
@@ -138,40 +146,55 @@
       updateCategoryOptions();
     }
 
-    function updateAccountOptions() {
-      const select = document.getElementById('account');
-      select.innerHTML = '';
-      accountList.forEach(acc => {
-        const opt = document.createElement('option');
-        opt.value = acc;
-        opt.textContent = acc;
-        select.appendChild(opt);
-      });
-    }
+function updateAccountOptions() {
+  const fromSelect = document.getElementById('fromAccount');
+  const toSelect = document.getElementById('toAccount');
+  fromSelect.innerHTML = '';
+  toSelect.innerHTML = '';
+  accountList.forEach(acc => {
+    const opt1 = document.createElement('option');
+    opt1.value = opt1.textContent = acc;
+    fromSelect.appendChild(opt1);
 
-    function updateCategoryOptions() {
-      const type = document.getElementById('type').value;
-      const select = document.getElementById('category');
-      select.innerHTML = '';
-      const list = type === '收入' ? incomeCategories : expenseCategories;
-      list.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        select.appendChild(opt);
-      });
-    }
+    const opt2 = document.createElement('option');
+    opt2.value = opt2.textContent = acc;
+    toSelect.appendChild(opt2);
+  });
+}
+function updateCategoryOptions() {
+  const type = document.getElementById('type').value;
+  const catSection = document.getElementById('categorySection');
+  const toAccLabel = document.getElementById('toAccountLabel');
 
+  if (type === '轉帳') {
+    catSection.style.display = 'none';
+    toAccLabel.style.display = 'block';
+  } else {
+    catSection.style.display = 'block';
+    toAccLabel.style.display = 'none';
+
+    const select = document.getElementById('category');
+    select.innerHTML = '';
+    const list = type === '收入' ? incomeCategories : expenseCategories;
+    list.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+  }
+}
     document.getElementById('form').addEventListener('submit', e => {
       e.preventDefault();
-      const data = {
-        type: document.getElementById('type').value,
-        date: document.getElementById('date').value,
-        account: document.getElementById('account').value,
-        category: document.getElementById('category').value,
-        amount: parseFloat(document.getElementById('amount').value),
-        note: document.getElementById('note').value
-      };
+const data = {
+  type: document.getElementById('type').value,
+  date: document.getElementById('date').value,
+  account: document.getElementById('fromAccount').value,
+  toAccount: document.getElementById('toAccount')?.value || '',
+  category: document.getElementById('category')?.value || '',
+  amount: parseFloat(document.getElementById('amount').value),
+  note: document.getElementById('note').value
+};
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       stored.push(data);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
@@ -190,14 +213,15 @@
       (async () => {
         for (const item of data) {
           const payload = {
-            type: item.type,
-            date: item.date,
-            account: item.account,
-            amount: item.amount,
-            note: item.note || '',
-            catIn: item.type === '收入' ? item.category : '',
-            catOut: item.type === '支出' ? item.category : ''
-          };
+  type: item.type,
+  date: item.date,
+  account: item.account,
+  amount: item.amount,
+  note: item.note || '',
+  toAccount: item.type === '轉帳' ? item.toAccount : '',
+  catIn: item.type === '收入' ? item.category : '',
+  catOut: item.type === '支出' ? item.category : ''
+};
           try {
             const res = await fetch(GAS_URL, {
               method: 'POST',

@@ -197,19 +197,21 @@
       if (filtered.length === 0) return display.textContent = `📭 本機在 ${month} 無符合條件的資料`;
 
       let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
-      filtered.forEach(r => {
-        html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-      });
-let incomeTotal = 0;
-let expenseTotal = 0;
-filtered.forEach(r => {
-  if (r.type === '收入') incomeTotal += Number(r.amount);
-  if (r.type === '支出') expenseTotal += Number(r.amount);
-});
+      let incomeTotal = 0;
+	let expenseTotal = 0;
+	filtered.forEach(r => {
+  	if (r.type === '轉帳') {
+    	html += `<li>📤 ${r.date}｜${r.account} ➡ ${r.toAccount}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+ 	 } else {
+    	html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+    	if (r.type === '收入') incomeTotal += Number(r.amount);
+    	if (r.type === '支出') expenseTotal += Number(r.amount);
+  	}
+	});
 html += '</ul>';
 html += `<div>📊 統計：收入總額 $${incomeTotal}｜支出總額 $${expenseTotal}</div>`;
 display.innerHTML = html;
-    }
+
 
     function showCloudRecords() {
       const display = document.getElementById('recordDisplay');
@@ -241,18 +243,21 @@ display.innerHTML = html;
           }
 
           let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
-          filtered.forEach(r => {
-            html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-          });
-let incomeTotal = 0;
+          let incomeTotal = 0;
 let expenseTotal = 0;
 filtered.forEach(r => {
-  if (r.type === '收入') incomeTotal += Number(r.amount);
-  if (r.type === '支出') expenseTotal += Number(r.amount);
+  if (r.type === '轉帳') {
+    html += `<li>📤 ${r.date}｜${r.account} ➡ ${r.toAccount}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+  } else {
+    html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+    if (r.type === '收入') incomeTotal += Number(r.amount);
+    if (r.type === '支出') expenseTotal += Number(r.amount);
+  }
 });
 html += '</ul>';
 html += `<div>📊 統計：收入總額 $${incomeTotal}｜支出總額 $${expenseTotal}</div>`;
 display.innerHTML = html;
+
         })
         .catch(() => {
           display.innerHTML = '⚠️ 無法取得雲端資料';
