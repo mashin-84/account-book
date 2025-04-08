@@ -105,6 +105,18 @@
   <label>📅 選擇查詢月份
     <input type="month" id="queryMonth" style="margin-top: 10px;" />
   </label>
+<label>🏦 選擇帳戶
+  <select id="queryAccount" style="margin-top: 10px;">
+    <option value="全部">全部帳戶</option>
+  </select>
+</label>
+
+<label>📂 選擇類別
+  <select id="queryCategory" style="margin-top: 10px;">
+    <option value="全部">全部類別</option>
+  </select>
+</label>
+
   <button class="toggle-btn" onclick="showLocalRecords()">📂 查看本機資料</button>
   <button class="toggle-btn" onclick="showCloudRecords()">☁️ 查看雲端資料</button>
   <div class="balances" id="recordDisplay">📅 資料將顯示在這裡</div>
@@ -127,16 +139,32 @@
       section.style.display = section.style.display === 'none' ? 'block' : 'none';
     }
 
-    function loadFormOptions() {
-      fetch(`${GAS_URL}/?action=getFormOptions`)
-        .then(res => res.json())
-        .then(options => {
-          showList('accountListDisplay', options.accounts, deleteAccount);
-          showList('incomeCatListDisplay', options.incomeCategories, name => deleteCategory('收入', name));
-          showList('expenseCatListDisplay', options.expenseCategories, name => deleteCategory('支出', name));
-        });
-    }
+function loadFormOptions() {
+  fetch(`${GAS_URL}/?action=getFormOptions`)
+    .then(res => res.json())
+    .then(options => {
+      showList('accountListDisplay', options.accounts, deleteAccount);
+      showList('incomeCatListDisplay', options.incomeCategories, name => deleteCategory('收入', name));
+      showList('expenseCatListDisplay', options.expenseCategories, name => deleteCategory('支出', name));
 
+      // ✅ ← 這邊開始加入查詢下拉選單的部分
+      const accSelect = document.getElementById('queryAccount');
+      accSelect.innerHTML = '<option value="全部">全部帳戶</option>';
+      options.accounts.forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = acc;
+        accSelect.appendChild(opt);
+      });
+
+      const catSelect = document.getElementById('queryCategory');
+      catSelect.innerHTML = '<option value="全部">全部類別</option>';
+      [...options.incomeCategories, ...options.expenseCategories].forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+    });
+}
     function showList(containerId, items, deleteFn) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
@@ -216,22 +244,29 @@
         });
     }
 
-    function showLocalRecords() {
-      const display = document.getElementById('recordDisplay');
-      const month = document.getElementById('queryMonth').value;
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      const filtered = data.filter(r => r.date?.startsWith(month));
-      if (!month) return display.textContent = '⚠️ 請先選擇查詢的月份';
-      if (data.length === 0) return display.textContent = '📂 本機沒有任何資料';
-      if (filtered.length === 0) return display.textContent = `📭 本機在 ${month} 無資料`;
+function showLocalRecords() {
+  const display = document.getElementById('recordDisplay');
+  const month = document.getElementById('queryMonth').value;
+  const accFilter = document.getElementById('queryAccount').value;
+  const catFilter = document.getElementById('queryCategory').value;
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const filtered = data.filter(r => {
+    return r.date?.startsWith(month) &&
+      (accFilter === '全部' || r.account === accFilter) &&
+      (catFilter === '全部' || r.category === catFilter);
+  });
 
-      let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
-      filtered.forEach(r => {
-        html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-      });
-      html += '</ul>';
-      display.innerHTML = html;
-    }
+  if (!month) return display.textContent = '⚠️ 請先選擇查詢的月份';
+  if (data.length === 0) return display.textContent = '📂 本機沒有任何資料';
+  if (filtered.length === 0) return display.textContent = `📭 本機在 ${month} 無符合條件的資料`;
+
+  let html = `<h3>${month} 本機資料</h3><ul style="padding-left:20px;">`;
+  filtered.forEach(r => {
+    html += `<li>📌 ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+  });
+  html += '</ul>';
+  display.innerHTML = html;
+}
 
     function showCloudRecords() {
       const display = document.getElementById('recordDisplay');
@@ -245,22 +280,30 @@
         body: JSON.stringify({ action: 'getMonthlyRecords', month })
       })
         .then(res => res.json())
-        .then(records => {
-          if (!records || records.length === 0) {
-            display.innerHTML = `📭 ${month} 雲端資料為空`;
-            return;
-          }
-          let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
-          records.forEach(r => {
-            html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
-          });
-          html += '</ul>';
-          display.innerHTML = html;
-        })
-        .catch(() => {
-          display.innerHTML = '⚠️ 無法取得雲端資料';
-        });
-    }
+.then(records => {
+  const accFilter = document.getElementById('queryAccount').value;
+  const catFilter = document.getElementById('queryCategory').value;
+  const filtered = records.filter(r => {
+    return (accFilter === '全部' || r.account === accFilter) &&
+           (catFilter === '全部' || r.category === catFilter);
+  });
+
+  if (!records || records.length === 0) {
+    display.innerHTML = `📭 ${month} 雲端資料為空`;
+    return;
+  }
+  if (filtered.length === 0) {
+    display.innerHTML = `📭 ${month} 無符合條件的雲端資料`;
+    return;
+  }
+
+  let html = `<h3>${month} 雲端資料</h3><ul style="padding-left:20px;">`;
+  filtered.forEach(r => {
+    html += `<li>☁️ ${r.date}｜${r.account}｜${r.category}｜$${r.amount}｜${r.note || ''}｜${r.type}</li>`;
+  });
+  html += '</ul>';
+  display.innerHTML = html;
+});
 
     function loadFixedExpenses() {
       const container = document.getElementById('fixedSection');
