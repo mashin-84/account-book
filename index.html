@@ -76,7 +76,7 @@
     <label>類型
       <select id="type">
         <option value="收入">收入</option>
-        <option value="支出">支出</option>
+        <option value="支出"selected>支出</option>
         <option value="轉帳">轉帳</option>
       </select>
     </label>
@@ -103,48 +103,25 @@
   <div class="message" id="msg"></div>
 
   <script>
+// ✅ 寫死選項資料
+const accountList = ["現金", "玉山金融卡", "郵局", "郵局優存", "永豐金", "國旅卡", "富邦costco"];
+const incomeCategories = ["薪水", "兼職費", "加班費", "兼課費", "其他"];
+const expenseCategories = ["飲食", "住家", "交通", "娛樂", "醫療保健", "寵物", "工作代墊", "投資", "日用品", "數位"];
     const STORAGE_KEY = 'fastbook-records';
     const CACHE_KEY = 'fastbook-options';
     const GAS_URL = 'https://mashin.t0884.workers.dev';
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('date').valueAsDate = new Date();
-      loadCachedOptions();
-      fetchOptionsFromCloud(); // 更新快取資料
+  populateOptions(); // ⬅️ 請補上這行
     });
 
     document.getElementById('type').addEventListener('change', updateCategoryOptions);
 
-    function loadCachedOptions() {
-      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-      if (cached.accounts && cached.incomeCategories && cached.expenseCategories) {
-        populateOptions(cached);
-      }
-    }
-
-    function fetchOptionsFromCloud() {
-      fetch(`${GAS_URL}/?action=getFormOptions`)
-        .then(res => res.json())
-        .then(data => {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-          populateOptions(data);
-        })
-        .catch(() => {
-          console.warn('無法取得雲端選項');
-        });
-    }
-
-    let accountList = [];
-    let incomeCategories = [];
-    let expenseCategories = [];
-
-    function populateOptions(data) {
-      accountList = data.accounts || [];
-      incomeCategories = data.incomeCategories || [];
-      expenseCategories = data.expenseCategories || [];
-      updateAccountOptions();
-      updateCategoryOptions();
-    }
+function populateOptions() {
+  updateAccountOptions();
+  updateCategoryOptions();
+}
 
 function updateAccountOptions() {
   const fromSelect = document.getElementById('fromAccount');
@@ -198,10 +175,16 @@ const data = {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       stored.push(data);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-      document.getElementById('msg').textContent = '✅ 已儲存到本地端';
-      document.getElementById('form').reset();
-      document.getElementById('date').valueAsDate = new Date();
-      updateCategoryOptions();
+document.getElementById('msg').textContent = '✅ 已儲存到本地端';
+
+setTimeout(() => {
+  document.getElementById('msg').textContent = ''; // ✅ 新增這段：3 秒後清空提示訊息
+}, 3000);
+
+document.getElementById('form').reset();
+document.getElementById('type').value = '支出';
+document.getElementById('date').valueAsDate = new Date();
+updateCategoryOptions();
     });
 
     function syncData() {
