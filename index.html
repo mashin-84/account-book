@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#666666" />
   <link rel="manifest" href="./manifest.json" />
   <title>極速記帳</title>
@@ -14,6 +14,7 @@
       background: #fff;
       font-size: 30px;
       color: #222;
+      touch-action: manipulation;
     }
     h2 { font-size: 42px; margin-bottom: 30px; }
     label {
@@ -311,6 +312,15 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./service-worker.js');
     }
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (e) {
+  const now = new Date().getTime();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault(); // 阻止雙擊放大
+  }
+  lastTouchEnd = now;
+}, false);
+
   </script>
 </body>
 </html>
